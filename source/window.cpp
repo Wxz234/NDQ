@@ -4,6 +4,13 @@
 
 namespace ndq
 {
+    void _SetDeviceHwndAndSize(void* hwnd, unsigned width, unsigned height);
+    void _DevicePresent();
+    void _DeviceFinalize();
+}
+
+namespace ndq
+{
     LRESULT CALLBACK _WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
         LRESULT Result;
@@ -28,10 +35,6 @@ namespace ndq
         lastTime = CurrentTime;
         return ElapsedTime;
     }
-
-    void _SetDeviceHwndAndSize(void* hwnd, unsigned width, unsigned height);
-    void _DevicePresent();
-    void _DeviceFinalize();
 
     int IWindow::Run()
     {

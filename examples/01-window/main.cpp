@@ -2,7 +2,9 @@
 
 #include "ndq/window.h"
 
-struct Window : public ndq::IWindow
+using namespace ndq;
+
+struct Window : public IWindow
 {
     Window()
     {
