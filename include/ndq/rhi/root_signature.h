@@ -4,5 +4,5 @@
 
 namespace ndq
 {
-    //Microsoft::WRL::ComPtr<ID3D12RootSignature> GetDefaultRootSignature();
+
 }

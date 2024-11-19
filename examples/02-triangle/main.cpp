@@ -1,7 +1,7 @@
 #include <Windows.h>
 
 #include "ndq/rhi/device.h"
-#include "ndq/utility/load_shader.h"
+#include "ndq/rhi/shader.h"
 #include "ndq/window.h"
 
 using namespace ndq;
@@ -37,6 +37,9 @@ struct Window : public IWindow
         //PsoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
         //PsoDesc.SampleDesc.Count = 1;
         //pRawDevice->CreateGraphicsPipelineState()
+
+        DeleteShader(VertexBlob);
+        DeleteShader(PixelBlob);
     }
 
     void Update(float t) {}
