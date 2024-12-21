@@ -218,14 +218,14 @@ namespace ndq
 
         UINT64 mFenceValue[NDQ_SWAPCHAIN_COUNT]{};
         ID3D12Fence1* mpFence = nullptr;
-        HANDLE mEvent;
+        HANDLE mEvent = INVALID_HANDLE_VALUE;
 
         UINT64 mCopyFenceValue = 0;
         ID3D12Fence1* mpCopyFence = nullptr;
-        HANDLE mCopyEvent;
+        HANDLE mCopyEvent = INVALID_HANDLE_VALUE;
         UINT64 mComputeFenceValue = 0;
         ID3D12Fence1* mpComputeFence = nullptr;
-        HANDLE mComputeEvent;
+        HANDLE mComputeEvent = INVALID_HANDLE_VALUE;
     };
 
     IDevice* GetGraphicsDevice()

@@ -1,6 +1,6 @@
 #include <d3dcompiler.h>
 
-#include "ndq/rhi/shader.h"
+#include "ndq/rhi/core.h"
 
 namespace ndq
 {
