@@ -1,7 +1,4 @@
-#include <Windows.h>
-
-#include <d3d12.h>
-#include <dxgiformat.h>
+#include "directx/d3dx12.h"
 
 #include "ndq/rhi/core.h"
 #include "ndq/rhi/device.h"
