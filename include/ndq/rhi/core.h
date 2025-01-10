@@ -1,10 +1,9 @@
 #pragma once
 
-#include <d3d12.h>
-#include <d3dcommon.h>
+#include <dxcapi.h>
+#include <wrl/client.h>
 
 namespace ndq
 {
-    ID3DBlob* LoadShader(const wchar_t* path);
-    void DeleteShader(ID3DBlob* pBlob);
+    Microsoft::WRL::ComPtr<IDxcBlob> LoadShader(const wchar_t* path, const wchar_t** pArguments, unsigned argCount);
 }

@@ -15,3 +15,11 @@ namespace ndq
         const wchar_t* Title = L"ndq";
     };
 }
+
+#define WIN_MAIN_MACRO(WindowClass) \
+    struct HINSTANCE__;  \
+    int __stdcall wWinMain(HINSTANCE__* hInstance, HINSTANCE__* hPrevInstance, wchar_t* lpCmdLine, int nCmdShow) \
+    { \
+        WindowClass MyWindow; \
+        return MyWindow.Run(); \
+    }

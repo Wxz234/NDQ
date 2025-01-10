@@ -1,27 +1,16 @@
-set(VERTEXSHADER_FILES "vertex.hlsl")
-set(PIXELSHADER_FILES "pixel.hlsl")
+set_source_files_properties(vertex.hlsl pixel.hlsl PROPERTIES VS_TOOL_OVERRIDE "None")
 
-add_executable(02-triangle WIN32 
-	"main.cpp"
-	${VERTEXSHADER_FILES}
-	${PIXELSHADER_FILES}
-)
+add_executable(02-triangle WIN32 "main.cpp")
+target_sources(02-triangle PRIVATE 	vertex.hlsl pixel.hlsl)
 
 target_link_libraries(02-triangle PRIVATE ndq)
-
 set_target_properties(02-triangle PROPERTIES 
-	FOLDER "examples"
-	VS_DEBUGGER_WORKING_DIRECTORY  "$(OutDir)"
+    FOLDER "examples"
+    VS_DEBUGGER_WORKING_DIRECTORY  $<TARGET_FILE_DIR:02-triangle>
 )
 
-set_source_files_properties(${VERTEXSHADER_FILES} PROPERTIES 
-	VS_SHADER_TYPE Vertex
-	VS_SHADER_ENTRYPOINT mainVS
-	VS_SHADER_MODEL 6.6
-)
-
-set_source_files_properties(${PIXELSHADER_FILES} PROPERTIES 
-	VS_SHADER_TYPE Pixel
-	VS_SHADER_ENTRYPOINT mainPS
-	VS_SHADER_MODEL 6.6
+add_custom_command(
+    TARGET 02-triangle POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/vertex.hlsl $<TARGET_FILE_DIR:02-triangle>/vertex.hlsl
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/pixel.hlsl $<TARGET_FILE_DIR:02-triangle>/pixel.hlsl
 )
