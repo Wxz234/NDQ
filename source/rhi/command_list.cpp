@@ -1,7 +1,5 @@
 #include <d3d12.h>
 
-#include <memory>
-
 #include "ndq/rhi/command_list.h"
 
 namespace ndq
@@ -41,17 +39,18 @@ namespace ndq
             return mType;
         }
 
+        void Release()
+        {
+            delete this;
+        }
+
         NDQ_COMMAND_LIST_TYPE mType;
         ID3D12GraphicsCommandList4* mpList;
         ID3D12CommandAllocator* mpAllocator;
     };
 
-    std::shared_ptr<ICommandList> _CreateCommandList(
-        NDQ_COMMAND_LIST_TYPE type, 
-        ID3D12GraphicsCommandList4* pList, 
-        ID3D12CommandAllocator* pAllocator
-    )
+    ICommandList* _CreateCommandList(NDQ_COMMAND_LIST_TYPE type, ID3D12GraphicsCommandList4* pList, ID3D12CommandAllocator* pAllocator)
     {
-        return std::shared_ptr<ICommandList>(new CommandList(type, pList, pAllocator));
+        return new CommandList(type, pList, pAllocator);
     }
 }

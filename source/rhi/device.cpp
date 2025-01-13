@@ -12,11 +12,7 @@
 
 namespace ndq
 {
-    std::shared_ptr<ICommandList> _CreateCommandList(
-        NDQ_COMMAND_LIST_TYPE type,
-        ID3D12GraphicsCommandList4* pList,
-        ID3D12CommandAllocator* pAllocator
-    );
+    ICommandList* _CreateCommandList(NDQ_COMMAND_LIST_TYPE type, ID3D12GraphicsCommandList4* pList, ID3D12CommandAllocator* pAllocator);
 }
 
 namespace ndq
@@ -150,8 +146,13 @@ namespace ndq
             }
         }
 
-        std::shared_ptr<ICommandList> CreateCommandList(NDQ_COMMAND_LIST_TYPE type)
+        void CreateCommandList(NDQ_COMMAND_LIST_TYPE type, ICommandList** ppCmdList)
         {
+            if (ppCmdList == nullptr)
+            {
+                return;
+            }
+
             ID3D12CommandAllocator* Allocator = nullptr;
             ID3D12GraphicsCommandList4* List = nullptr;
             switch (type)
@@ -169,7 +170,7 @@ namespace ndq
                 mpDevice->CreateCommandList1(NDQ_NODE_MASK, D3D12_COMMAND_LIST_TYPE_COMPUTE, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(&List));
                 break;
             }
-            return _CreateCommandList(type, List, Allocator);
+            *ppCmdList = _CreateCommandList(type, List, Allocator);
         }
 
         void MoveToNextFrame()

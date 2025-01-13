@@ -10,7 +10,7 @@ struct Window : IWindow
     }
 
     void Initialize() {}
-    void Update(float t) {}
+    void Update(float) {}
     void Finalize() {}
 };
 

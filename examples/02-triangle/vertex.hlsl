@@ -1,4 +1,6 @@
-float4 mainVS(float4 pos : POSITION) : SV_POSITION
+[RootSignature("RootFlags(0)")]
+float4 main(uint vertexId : SV_VertexID) : SV_POSITION
 {
-    return pos;
+    float2 positions[3] = { float2(0.0f, 0.5f), float2(0.5f, -0.5f), float2(-0.5f, -0.5f) };
+    return float4(positions[vertexId], 0.0f, 1.0f);
 }
