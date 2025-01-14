@@ -24,12 +24,12 @@ struct Window : IWindow
     {
         const wchar_t* VertexArgs[] =
         {
-            L"-T", L"vs_6_6",
+            L"-T", L"vs_6_0",
             L"-E", L"main"
         };
         const wchar_t* PixelArgs[] =
         {
-            L"-T", L"ps_6_6",
+            L"-T", L"ps_6_0",
             L"-E", L"main"
         };
 
@@ -37,7 +37,6 @@ struct Window : IWindow
         auto PixelBlob = LoadShader(L"pixel.hlsl", PixelArgs, 4);
        
         auto pRawDevice = GetGraphicsDevice()->GetRawDevice();
-        Microsoft::WRL::ComPtr<ID3D12RootSignature> pRootSignature;
         pRawDevice->CreateRootSignature(1, VertexBlob->GetBufferPointer(), VertexBlob->GetBufferSize(), IID_PPV_ARGS(&pRootSignature));
 
         D3D12_GRAPHICS_PIPELINE_STATE_DESC PsoDesc{};
@@ -61,16 +60,33 @@ struct Window : IWindow
 
     void Update(float)
     {
-        D3D12_VERTEX_BUFFER_VIEW emptyVertexBuffer{};
-
+        pCmdList->Open(pPipelineSatae.Get());
         auto pRawCmdList = pCmdList->GetRawCommandList();
-        //pCmdList->Open(pPipelineSatae.Get());
-        //pCmdList->Close();
+        pRawCmdList->SetGraphicsRootSignature(pRootSignature.Get());
 
-        ////commandList->IASetVertexBuffers(0, 1, &emptyVertexBuffer);
-        ////commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        ////commandList->DrawInstanced(3, 1, 0, 0);
-        //GetGraphicsDevice()->ExecuteCommandList(pCmdList);
+        CD3DX12_VIEWPORT viewport(0.f, 0.f, Width, Height);
+        pRawCmdList->RSSetViewports(1, &viewport);
+        CD3DX12_RECT scissorRect(0, 0, Width, Height);
+        pRawCmdList->RSSetScissorRects(1, &scissorRect);
+
+        D3D12_VERTEX_BUFFER_VIEW emptyVertexBuffer{};
+        pRawCmdList->IASetVertexBuffers(0, 1, &emptyVertexBuffer);
+        pRawCmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        
+        auto CurrentResource = GetGraphicsDevice()->GetCurrentResource();
+        pRawCmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentResource, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
+
+        auto RtvHandle = GetGraphicsDevice()->GetCurrentRenderTargetView();
+        pRawCmdList->OMSetRenderTargets(1, &RtvHandle, FALSE, nullptr);
+        const float ClearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+        pRawCmdList->ClearRenderTargetView(RtvHandle, ClearColor, 0, nullptr);
+        pRawCmdList->DrawInstanced(3, 1, 0, 0);
+
+        pRawCmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentResource, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
+        
+        pCmdList->Close();
+
+        GetGraphicsDevice()->ExecuteCommandList(pCmdList);
 
         GetGraphicsDevice()->Wait(NDQ_COMMAND_LIST_TYPE::GRAPHICS);
     }
@@ -81,6 +97,7 @@ struct Window : IWindow
     }
 
     Microsoft::WRL::ComPtr<ID3D12PipelineState> pPipelineSatae;
+    Microsoft::WRL::ComPtr<ID3D12RootSignature> pRootSignature;
     ICommandList* pCmdList = nullptr;
 
 };

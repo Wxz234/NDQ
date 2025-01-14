@@ -2,6 +2,7 @@
 #include <dxgi1_6.h>
 
 #include <memory>
+#include <vector>
 
 #include "ndq/rhi/command_list.h"
 #include "ndq/rhi/device.h"
@@ -26,18 +27,25 @@ namespace ndq
         {
             Finalize();
 
-            mpDevice->Release();
-            mpSwapChain->Release();
-            mpGraphicsQueue->Release();
-            mpCopyQueue->Release();
-            mpComputeQueue->Release();
-            mpFence->Release();
-            mpCopyFence->Release();
-            mpComputeFence->Release();
+            pDevice->Release();
+            pSwapChain->Release();
+            pGraphicsQueue->Release();
+            pCopyQueue->Release();
+            pComputeQueue->Release();
+            pFence->Release();
+            pCopyFence->Release();
+            pComputeFence->Release();
 
             CloseHandle(mEvent);
             CloseHandle(mCopyEvent);
             CloseHandle(mComputeEvent);
+
+            pRtvHeap->Release();
+
+            for (ID3D12Resource* resource : mRenderTargets)
+            {
+                resource->Release();
+            }
         }
 
         void Initialize(HWND hwnd, UINT width, UINT height)
@@ -55,15 +63,15 @@ namespace ndq
             CreateDXGIFactory2(FactoryFlag, IID_PPV_ARGS(&Factory));
             IDXGIAdapter4* Adapter;
             Factory->EnumAdapterByGpuPreference(0, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&Adapter));
-            D3D12CreateDevice(Adapter, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&mpDevice));
+            D3D12CreateDevice(Adapter, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&pDevice));
 
             D3D12_COMMAND_QUEUE_DESC QueueDesc{};
             QueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-            mpDevice->CreateCommandQueue(&QueueDesc, IID_PPV_ARGS(&mpGraphicsQueue));
+            pDevice->CreateCommandQueue(&QueueDesc, IID_PPV_ARGS(&pGraphicsQueue));
             QueueDesc.Type = D3D12_COMMAND_LIST_TYPE_COPY;
-            mpDevice->CreateCommandQueue(&QueueDesc, IID_PPV_ARGS(&mpCopyQueue));
+            pDevice->CreateCommandQueue(&QueueDesc, IID_PPV_ARGS(&pCopyQueue));
             QueueDesc.Type = D3D12_COMMAND_LIST_TYPE_COMPUTE;
-            mpDevice->CreateCommandQueue(&QueueDesc, IID_PPV_ARGS(&mpComputeQueue));
+            pDevice->CreateCommandQueue(&QueueDesc, IID_PPV_ARGS(&pComputeQueue));
 
             DXGI_SWAP_CHAIN_DESC1 ScDesc{};
             ScDesc.BufferCount = NDQ_SWAPCHAIN_COUNT;
@@ -81,18 +89,18 @@ namespace ndq
             FsSwapChainDesc.Windowed = TRUE;
             IDXGISwapChain1* SwapChain;
 
-            Factory->CreateSwapChainForHwnd(mpGraphicsQueue, hwnd, &ScDesc, &FsSwapChainDesc, nullptr, &SwapChain);
+            Factory->CreateSwapChainForHwnd(pGraphicsQueue, hwnd, &ScDesc, &FsSwapChainDesc, nullptr, &SwapChain);
             Factory->MakeWindowAssociation(hwnd, DXGI_MWA_NO_WINDOW_CHANGES | DXGI_MWA_NO_ALT_ENTER);
 
-            SwapChain->QueryInterface(&mpSwapChain);
+            SwapChain->QueryInterface(&pSwapChain);
 
-            mFrameIndex = mpSwapChain->GetCurrentBackBufferIndex();
-            mpDevice->CreateFence(mFenceValue[mFrameIndex]++, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&mpFence));
+            mFrameIndex = pSwapChain->GetCurrentBackBufferIndex();
+            pDevice->CreateFence(mFenceValue[mFrameIndex]++, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&pFence));
             mEvent = CreateEventW(nullptr, FALSE, FALSE, nullptr);
 
-            mpDevice->CreateFence(mCopyFenceValue++, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&mpCopyFence));
+            pDevice->CreateFence(mCopyFenceValue++, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&pCopyFence));
             mCopyEvent = CreateEventW(nullptr, FALSE, FALSE, nullptr);
-            mpDevice->CreateFence(mComputeFenceValue++, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&mpComputeFence));
+            pDevice->CreateFence(mComputeFenceValue++, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&pComputeFence));
             mComputeEvent = CreateEventW(nullptr, FALSE, FALSE, nullptr);
 
             Factory->Release();
@@ -102,6 +110,8 @@ namespace ndq
             }
             Adapter->Release();
             SwapChain->Release();
+
+            _CreateRTV();
         }
 
         void Finalize()
@@ -113,13 +123,13 @@ namespace ndq
 
         void Present()
         {
-            mpSwapChain->Present(1, 0);
+            pSwapChain->Present(1, 0);
             MoveToNextFrame();
         }
 
         ID3D12Device* GetRawDevice() const
         {
-            return mpDevice;
+            return pDevice;
         }
 
         void Wait(NDQ_COMMAND_LIST_TYPE type)
@@ -135,13 +145,13 @@ namespace ndq
             switch (Type)
             {
             case NDQ_COMMAND_LIST_TYPE::GRAPHICS:
-                mpGraphicsQueue->ExecuteCommandLists(1, Lists);
+                pGraphicsQueue->ExecuteCommandLists(1, Lists);
                 break;
             case NDQ_COMMAND_LIST_TYPE::COPY:
-                mpCopyQueue->ExecuteCommandLists(1, Lists);
+                pCopyQueue->ExecuteCommandLists(1, Lists);
                 break;
             case NDQ_COMMAND_LIST_TYPE::COMPUTE:
-                mpComputeQueue->ExecuteCommandLists(1, Lists);
+                pComputeQueue->ExecuteCommandLists(1, Lists);
                 break;
             }
         }
@@ -158,16 +168,16 @@ namespace ndq
             switch (type)
             {
             case NDQ_COMMAND_LIST_TYPE::GRAPHICS:
-                mpDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&Allocator));
-                mpDevice->CreateCommandList1(NDQ_NODE_MASK, D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(&List));
+                pDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&Allocator));
+                pDevice->CreateCommandList1(NDQ_NODE_MASK, D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(&List));
                 break;
             case NDQ_COMMAND_LIST_TYPE::COPY:
-                mpDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, IID_PPV_ARGS(&Allocator));
-                mpDevice->CreateCommandList1(NDQ_NODE_MASK, D3D12_COMMAND_LIST_TYPE_COPY, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(&List));
+                pDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, IID_PPV_ARGS(&Allocator));
+                pDevice->CreateCommandList1(NDQ_NODE_MASK, D3D12_COMMAND_LIST_TYPE_COPY, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(&List));
                 break;
             case NDQ_COMMAND_LIST_TYPE::COMPUTE:
-                mpDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COMPUTE, IID_PPV_ARGS(&Allocator));
-                mpDevice->CreateCommandList1(NDQ_NODE_MASK, D3D12_COMMAND_LIST_TYPE_COMPUTE, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(&List));
+                pDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COMPUTE, IID_PPV_ARGS(&Allocator));
+                pDevice->CreateCommandList1(NDQ_NODE_MASK, D3D12_COMMAND_LIST_TYPE_COMPUTE, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(&List));
                 break;
             }
             *ppCmdList = _CreateCommandList(type, List, Allocator);
@@ -176,11 +186,11 @@ namespace ndq
         void MoveToNextFrame()
         {
             const UINT64 CurrentFenceValue = mFenceValue[mFrameIndex];
-            mpGraphicsQueue->Signal(mpFence, CurrentFenceValue);
-            mFrameIndex = mpSwapChain->GetCurrentBackBufferIndex();
-            if (mpFence->GetCompletedValue() < mFenceValue[mFrameIndex])
+            pGraphicsQueue->Signal(pFence, CurrentFenceValue);
+            mFrameIndex = pSwapChain->GetCurrentBackBufferIndex();
+            if (pFence->GetCompletedValue() < mFenceValue[mFrameIndex])
             {
-                mpFence->SetEventOnCompletion(mFenceValue[mFrameIndex], mEvent);
+                pFence->SetEventOnCompletion(mFenceValue[mFrameIndex], mEvent);
                 WaitForSingleObjectEx(mEvent, INFINITE, FALSE);
             }
             mFenceValue[mFrameIndex] = CurrentFenceValue + 1;
@@ -191,42 +201,80 @@ namespace ndq
             switch (type)
             {
             case NDQ_COMMAND_LIST_TYPE::GRAPHICS:
-                mpGraphicsQueue->Signal(mpFence, mFenceValue[mFrameIndex]);
-                mpFence->SetEventOnCompletion(mFenceValue[mFrameIndex]++, mEvent);
+                pGraphicsQueue->Signal(pFence, mFenceValue[mFrameIndex]);
+                pFence->SetEventOnCompletion(mFenceValue[mFrameIndex]++, mEvent);
                 WaitForSingleObjectEx(mEvent, INFINITE, FALSE);
                 break;
             case NDQ_COMMAND_LIST_TYPE::COPY:
-                mpCopyQueue->Signal(mpCopyFence, mCopyFenceValue);
-                mpCopyFence->SetEventOnCompletion(mCopyFenceValue++, mCopyEvent);
+                pCopyQueue->Signal(pCopyFence, mCopyFenceValue);
+                pCopyFence->SetEventOnCompletion(mCopyFenceValue++, mCopyEvent);
                 WaitForSingleObjectEx(mCopyEvent, INFINITE, FALSE);
                 break;
             case NDQ_COMMAND_LIST_TYPE::COMPUTE:
-                mpComputeQueue->Signal(mpComputeFence, mComputeFenceValue);
-                mpComputeFence->SetEventOnCompletion(mComputeFenceValue++, mComputeEvent);
+                pComputeQueue->Signal(pComputeFence, mComputeFenceValue);
+                pComputeFence->SetEventOnCompletion(mComputeFenceValue++, mComputeEvent);
                 WaitForSingleObjectEx(mComputeEvent, INFINITE, FALSE);
                 break;
             }
         }
 
-        ID3D12Device4* mpDevice = nullptr;
-        IDXGISwapChain4* mpSwapChain = nullptr;
+        D3D12_CPU_DESCRIPTOR_HANDLE GetCurrentRenderTargetView() const
+        {
+            D3D12_CPU_DESCRIPTOR_HANDLE handle = pRtvHeap->GetCPUDescriptorHandleForHeapStart();
+            handle.ptr += mFrameIndex * mRtvDescriptorSize;
+            return handle;
+        }
 
-        ID3D12CommandQueue* mpGraphicsQueue = nullptr;
-        ID3D12CommandQueue* mpCopyQueue = nullptr;
-        ID3D12CommandQueue* mpComputeQueue = nullptr;
+        void _CreateRTV()
+        {
+            D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
+            rtvHeapDesc.NumDescriptors = NDQ_SWAPCHAIN_COUNT;
+            rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+            rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+            pDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&pRtvHeap));
+
+            mRenderTargets.resize(NDQ_SWAPCHAIN_COUNT);
+
+            D3D12_CPU_DESCRIPTOR_HANDLE RtvHandle = pRtvHeap->GetCPUDescriptorHandleForHeapStart();
+            mRtvDescriptorSize = pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+            for (UINT i = 0; i < NDQ_SWAPCHAIN_COUNT; i++)
+            {
+                pSwapChain->GetBuffer(i, IID_PPV_ARGS(&mRenderTargets[i]));
+                pDevice->CreateRenderTargetView(mRenderTargets[i], nullptr, RtvHandle);
+                RtvHandle.ptr += mRtvDescriptorSize;
+            }
+        }
+
+        ID3D12Resource* GetCurrentResource() const
+        {
+            return mRenderTargets[mFrameIndex];
+        }
+
+        ID3D12Device4* pDevice = nullptr;
+        IDXGISwapChain4* pSwapChain = nullptr;
+
+        ID3D12CommandQueue* pGraphicsQueue = nullptr;
+        ID3D12CommandQueue* pCopyQueue = nullptr;
+        ID3D12CommandQueue* pComputeQueue = nullptr;
 
         UINT32 mFrameIndex = 0;
 
         UINT64 mFenceValue[NDQ_SWAPCHAIN_COUNT]{};
-        ID3D12Fence1* mpFence = nullptr;
+        ID3D12Fence1* pFence = nullptr;
         HANDLE mEvent = INVALID_HANDLE_VALUE;
 
         UINT64 mCopyFenceValue = 0;
-        ID3D12Fence1* mpCopyFence = nullptr;
+        ID3D12Fence1* pCopyFence = nullptr;
         HANDLE mCopyEvent = INVALID_HANDLE_VALUE;
         UINT64 mComputeFenceValue = 0;
-        ID3D12Fence1* mpComputeFence = nullptr;
+        ID3D12Fence1* pComputeFence = nullptr;
         HANDLE mComputeEvent = INVALID_HANDLE_VALUE;
+
+        ID3D12DescriptorHeap* pRtvHeap = nullptr;
+
+        std::vector<ID3D12Resource*> mRenderTargets;
+
+        UINT mRtvDescriptorSize = 0;
     };
 
     IDevice* GetGraphicsDevice()
