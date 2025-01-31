@@ -1,4 +1,4 @@
-#include "ndq/window.h"
+#include "ndq/platform/window.h"
 
 using namespace ndq;
 

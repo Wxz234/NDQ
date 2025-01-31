@@ -1,6 +1,8 @@
 #include <Windows.h>
 
-#include "ndq/window.h"
+#include <DirectXMath.h>
+
+#include "ndq/platform/window.h"
 
 namespace ndq
 {
@@ -56,6 +58,11 @@ namespace ndq
         auto hwnd = CreateWindowExW(0, L"ndq", Title, Stype, CW_USEDEFAULT, CW_USEDEFAULT, RC.right - RC.left, RC.bottom - RC.top, nullptr, nullptr, Wcex.hInstance, nullptr);
         ShowWindow(hwnd, SW_SHOWDEFAULT);
         UpdateWindow(hwnd);
+
+        if (!DirectX::XMVerifyCPUSupport())
+        {
+            return 1;
+        }
 
         _SetDeviceHwndAndSize(&hwnd, Width, Height);
 

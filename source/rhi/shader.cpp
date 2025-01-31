@@ -1,11 +1,22 @@
-#include <combaseapi.h>
+#include <Windows.h>
 
-#include "ndq/rhi/core.h"
+#include <combaseapi.h>
+#include <dxcapi.h>
+#include <wrl/client.h>
+
+#include "ndq/rhi/shader.h"
 
 namespace ndq
 {
-    Microsoft::WRL::ComPtr<IDxcBlob> LoadShader(const wchar_t* path, const wchar_t** pArguments, unsigned argCount)
+    IBlob* _CreateBlob(IDxcBlob* pRawBlob);
+
+    void LoadShaderFromPath(const wchar_t* path, const wchar_t** pArguments, unsigned argCount, IBlob** ppBlob)
     {
+        if (ppBlob == nullptr)
+        {
+            return;
+        }
+
         Microsoft::WRL::ComPtr<IDxcUtils> pUtils;
         DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&pUtils));
 
@@ -31,10 +42,11 @@ namespace ndq
             IID_PPV_ARGS(&pResult)
         );
 
-        Microsoft::WRL::ComPtr<IDxcBlob> pShader = nullptr;
+        IDxcBlob* pBlob;
         Microsoft::WRL::ComPtr<IDxcBlobUtf16> pShaderName = nullptr;
-        pResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&pShader), &pShaderName);
-        
-        return pShader;
+        pResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&pBlob), &pShaderName);
+
+        *ppBlob = _CreateBlob(pBlob);
+        pBlob->Release();
     }
 }

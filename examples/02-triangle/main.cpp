@@ -6,10 +6,11 @@
 
 #include "d3dx12.h"
 
+#include "ndq/core/blob.h"
+#include "ndq/platform/window.h"
 #include "ndq/rhi/command_list.h"
-#include "ndq/rhi/core.h"
 #include "ndq/rhi/device.h"
-#include "ndq/window.h"
+#include "ndq/rhi/shader.h"
 
 using namespace ndq;
 
@@ -33,16 +34,19 @@ struct Window : IWindow
             L"-E", L"main"
         };
 
-        auto VertexBlob = LoadShader(L"vertex.hlsl", VertexArgs, 4);
-        auto PixelBlob = LoadShader(L"pixel.hlsl", PixelArgs, 4);
+        IBlob* pVertexBlob = nullptr;
+        LoadShaderFromPath(L"vertex.hlsl", VertexArgs, 4, &pVertexBlob);
+        IBlob* pPixelBlob = nullptr;
+        LoadShaderFromPath(L"pixel.hlsl", PixelArgs, 4, &pPixelBlob);
        
         auto pRawDevice = GetGraphicsDevice()->GetRawDevice();
-        pRawDevice->CreateRootSignature(1, VertexBlob->GetBufferPointer(), VertexBlob->GetBufferSize(), IID_PPV_ARGS(&pRootSignature));
+        pRawDevice->CreateRootSignature(1, pVertexBlob->GetBufferPointer(), pVertexBlob->GetBufferSize(), IID_PPV_ARGS(&pRootSignature));
 
-        D3D12_GRAPHICS_PIPELINE_STATE_DESC PsoDesc{};
+        D3D12_GRAPHICS_PIPELINE_STATE_DESC PsoDesc = {};
+        PsoDesc.InputLayout = { nullptr, 0 };
         PsoDesc.pRootSignature = pRootSignature.Get();
-        PsoDesc.VS = CD3DX12_SHADER_BYTECODE(VertexBlob->GetBufferPointer(), VertexBlob->GetBufferSize());
-        PsoDesc.PS = CD3DX12_SHADER_BYTECODE(PixelBlob->GetBufferPointer(), PixelBlob->GetBufferSize());
+        PsoDesc.VS = CD3DX12_SHADER_BYTECODE(pVertexBlob->GetBufferPointer(), pVertexBlob->GetBufferSize());
+        PsoDesc.PS = CD3DX12_SHADER_BYTECODE(pPixelBlob->GetBufferPointer(), pPixelBlob->GetBufferSize());
         PsoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
         PsoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
         PsoDesc.DepthStencilState.DepthEnable = FALSE;
@@ -56,6 +60,9 @@ struct Window : IWindow
         pRawDevice->CreateGraphicsPipelineState(&PsoDesc, IID_PPV_ARGS(&pPipelineSatae));
 
         GetGraphicsDevice()->CreateCommandList(NDQ_COMMAND_LIST_TYPE::GRAPHICS, &pCmdList);
+
+        pVertexBlob->Release();
+        pPixelBlob->Release();
     }
 
     void Update(float)
@@ -99,7 +106,6 @@ struct Window : IWindow
     Microsoft::WRL::ComPtr<ID3D12PipelineState> pPipelineSatae;
     Microsoft::WRL::ComPtr<ID3D12RootSignature> pRootSignature;
     ICommandList* pCmdList = nullptr;
-
 };
 
 WIN_MAIN_MACRO(Window)
