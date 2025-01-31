@@ -1,12 +1,12 @@
 #pragma once
 
-#include "ndq/core/releasable.h"
+#include "ndq/core/resource.h"
 
 #include <cstddef>
 
 namespace ndq
 {
-    class IBlob : public IReleasable
+    class IBlob : public IRefCounted
     {
     public:
         virtual void* GetBufferPointer() const = 0;

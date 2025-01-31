@@ -5,17 +5,28 @@
 #include <dxcapi.h>
 #include <wrl/client.h>
 
+#include <atomic>
+
 namespace ndq
 {
     class Blob : public IBlob
     {
     public:
 
-        Blob(IDxcBlob* pRawBlob) : pBlob(pRawBlob) {}
+        Blob(IDxcBlob* pRawBlob) : pBlob(pRawBlob) ,mRefCount(1) {}
+
+        unsigned long AddRef()
+        {
+            return ++mRefCount;
+        }
 
         void Release()
         {
-            delete this;
+            unsigned long result = --mRefCount;
+            if (result == 0)
+            {
+                delete this;
+            }
         }
 
         void* GetBufferPointer() const
@@ -29,6 +40,7 @@ namespace ndq
         }
 
         Microsoft::WRL::ComPtr<IDxcBlob> pBlob;
+        std::atomic<unsigned long> mRefCount;
     };
 
     IBlob* _CreateBlob(IDxcBlob* pRawBlob)

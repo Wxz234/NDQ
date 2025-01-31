@@ -1,8 +1,8 @@
 #pragma once
 
-#include <d3d12.h>
-
 #include "ndq/rhi/command_list.h"
+
+#include <d3d12.h>
 
 namespace ndq
 {

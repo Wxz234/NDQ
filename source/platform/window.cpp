@@ -1,8 +1,8 @@
+#include "ndq/platform/window.h"
+
 #include <Windows.h>
 
 #include <DirectXMath.h>
-
-#include "ndq/platform/window.h"
 
 namespace ndq
 {

@@ -2,9 +2,10 @@
 
 namespace ndq
 {
-    class IReleasable
+    class IRefCounted
     {
     public:
+        virtual unsigned long AddRef() = 0;
         virtual void Release() = 0;
     };
 }

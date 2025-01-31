@@ -1,3 +1,9 @@
+#include "ndq/core/blob.h"
+#include "ndq/platform/window.h"
+#include "ndq/rhi/command_list.h"
+#include "ndq/rhi/device.h"
+#include "ndq/rhi/shader.h"
+
 #include <Windows.h>
 
 #include <combaseapi.h>
@@ -5,12 +11,6 @@
 #include <wrl/client.h>
 
 #include "d3dx12.h"
-
-#include "ndq/core/blob.h"
-#include "ndq/platform/window.h"
-#include "ndq/rhi/command_list.h"
-#include "ndq/rhi/device.h"
-#include "ndq/rhi/shader.h"
 
 using namespace ndq;
 

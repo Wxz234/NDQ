@@ -1,10 +1,10 @@
+#include "ndq/rhi/shader.h"
+
 #include <Windows.h>
 
 #include <combaseapi.h>
 #include <dxcapi.h>
 #include <wrl/client.h>
-
-#include "ndq/rhi/shader.h"
 
 namespace ndq
 {

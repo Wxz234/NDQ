@@ -12,7 +12,7 @@ struct Window : IWindow
 
     void Initialize()
     {
-        CreateRenderer(&pRenderer);
+        //CreateRenderer(&pRenderer);
     }
 
     void Update(float)
@@ -22,10 +22,10 @@ struct Window : IWindow
 
     void Finalize()
     {
-        pRenderer->Release();
+        //pRenderer->Release();
     }
 
-    IRenderer* pRenderer = nullptr;
+    //IRenderer* pRenderer = nullptr;
 };
 
 WIN_MAIN_MACRO(Window)

@@ -1,8 +1,8 @@
 #pragma once
 
-#include <d3d12.h>
+#include "ndq/core/resource.h"
 
-#include "ndq/core/releasable.h"
+#include <d3d12.h>
 
 namespace ndq
 {
@@ -13,7 +13,7 @@ namespace ndq
         COMPUTE,
     };
 
-    class ICommandList : public IReleasable
+    class ICommandList : public IRefCounted
     {
     public:
         virtual ID3D12GraphicsCommandList* GetRawCommandList() const = 0;

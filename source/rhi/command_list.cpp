@@ -1,6 +1,9 @@
+#include "ndq/rhi/command_list.h"
+
 #include <d3d12.h>
 
-#include "ndq/rhi/command_list.h"
+#include <atomic>
+
 
 namespace ndq
 {
@@ -10,7 +13,7 @@ namespace ndq
         CommandList(NDQ_COMMAND_LIST_TYPE type, 
             ID3D12GraphicsCommandList4* pList,
             ID3D12CommandAllocator* pAllocator) :
-            mType(type), mpList(pList), mpAllocator(pAllocator) {}
+            mType(type), mpList(pList), mpAllocator(pAllocator) , mRefCount(1) {}
 
         ~CommandList()
         {
@@ -39,14 +42,25 @@ namespace ndq
             return mType;
         }
 
+        unsigned long AddRef()
+        {
+            return ++mRefCount;
+        }
+
         void Release()
         {
-            delete this;
+            unsigned long result = --mRefCount;
+            if (result == 0)
+            {
+                delete this;
+            }
         }
 
         NDQ_COMMAND_LIST_TYPE mType;
         ID3D12GraphicsCommandList4* mpList;
         ID3D12CommandAllocator* mpAllocator;
+
+        std::atomic<unsigned long> mRefCount;
     };
 
     ICommandList* _CreateCommandList(NDQ_COMMAND_LIST_TYPE type, ID3D12GraphicsCommandList4* pList, ID3D12CommandAllocator* pAllocator)

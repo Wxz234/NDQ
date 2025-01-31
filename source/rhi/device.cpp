@@ -1,11 +1,11 @@
+#include "ndq/rhi/command_list.h"
+#include "ndq/rhi/device.h"
+
 #include <d3d12.h>
 #include <dxgi1_6.h>
 
 #include <memory>
 #include <vector>
-
-#include "ndq/rhi/command_list.h"
-#include "ndq/rhi/device.h"
 
 #define NDQ_SWAPCHAIN_FORMAT DXGI_FORMAT_R8G8B8A8_UNORM
 #define NDQ_SWAPCHAIN_COUNT 3
