@@ -47,13 +47,14 @@ namespace ndq
             return ++mRefCount;
         }
 
-        void Release()
+        unsigned long Release()
         {
             unsigned long result = --mRefCount;
             if (result == 0)
             {
                 delete this;
             }
+            return result;
         }
 
         NDQ_COMMAND_LIST_TYPE mType;

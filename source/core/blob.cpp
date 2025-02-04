@@ -20,13 +20,14 @@ namespace ndq
             return ++mRefCount;
         }
 
-        void Release()
+        unsigned long Release()
         {
             unsigned long result = --mRefCount;
             if (result == 0)
             {
                 delete this;
             }
+            return result;
         }
 
         void* GetBufferPointer() const
